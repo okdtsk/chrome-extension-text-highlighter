@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Text Highlighter Configuration</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <h1>Text Highlighter</h1>
+    
+    <div class="header-actions">
+      <button id="addNewBtn" class="btn btn-primary">+ Add New Text</button>
+      <div class="import-export-actions">
+        <button id="exportBtn" class="btn btn-secondary">Export Settings</button>
+        <button id="importBtn" class="btn btn-secondary">Import Settings</button>
+        <input type="file" id="importFile" accept=".json" style="display: none;">
+      </div>
+    </div>
+
+    <div id="highlightsList" class="highlights-list">
+      <!-- Highlight items will be dynamically added here -->
+    </div>
+
+    <div id="noHighlights" class="no-highlights" style="display: none;">
+      <p>No highlight rules configured yet.</p>
+      <p>Click "Add New Text" to create your first rule.</p>
+    </div>
+
+    <div id="editModal" class="modal" style="display: none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="modalTitle">Add New Highlight Rule</h2>
+          <button class="close-btn" id="closeModalBtn">&times;</button>
+        </div>
+        
+        <div class="modal-body">
+          <div class="section">
+            <h3>Target Text</h3>
+            <input type="text" id="targetText" placeholder="Enter text to highlight">
+            <label class="checkbox-label">
+              <input type="checkbox" id="useRegex">
+              <span>Use Regular Expression</span>
+            </label>
+          </div>
+
+          <div class="section">
+            <h3>Highlight Styles</h3>
+            
+            <div class="style-group">
+              <label for="bgColor">Background Color:</label>
+              <input type="color" id="bgColor" value="#ffff00">
+            </div>
+
+            <div class="style-group">
+              <label for="textColor">Text Color:</label>
+              <input type="color" id="textColor" value="#000000">
+            </div>
+
+            <div class="style-group">
+              <label for="fontSize">Font Size:</label>
+              <select id="fontSize">
+                <option value="">Default</option>
+                <option value="0.8em">Small</option>
+                <option value="1.2em">Large</option>
+                <option value="1.5em">Extra Large</option>
+              </select>
+            </div>
+
+            <div class="style-group">
+              <label for="fontWeight">Font Weight:</label>
+              <select id="fontWeight">
+                <option value="">Default</option>
+                <option value="normal">Normal</option>
+                <option value="bold">Bold</option>
+                <option value="bolder">Bolder</option>
+              </select>
+            </div>
+
+            <div class="style-group">
+              <label for="margin">Margin:</label>
+              <input type="number" id="margin" min="0" max="20" value="0" placeholder="0">
+              <span class="unit">px</span>
+            </div>
+
+            <div class="style-group">
+              <label for="padding">Padding:</label>
+              <input type="number" id="padding" min="0" max="20" value="0" placeholder="0">
+              <span class="unit">px</span>
+            </div>
+
+            <div class="style-group">
+              <label for="borderStyle">Border:</label>
+              <select id="borderStyle">
+                <option value="none">None</option>
+                <option value="underline">Underline (Single)</option>
+                <option value="double-underline">Underline (Double)</option>
+                <option value="wavy-underline">Underline (Wavy)</option>
+                <option value="dashed-underline">Underline (Dashed)</option>
+                <option value="border">Full Border</option>
+              </select>
+            </div>
+
+            <div class="style-group" id="borderColorGroup" style="display: none;">
+              <label for="borderColor">Border Color:</label>
+              <input type="color" id="borderColor" value="#000000">
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button id="saveRuleBtn" class="btn btn-primary">Save</button>
+          <button id="cancelBtn" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div id="status" class="status"></div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

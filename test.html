@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Text Highlighter Test Page</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .dynamic-content {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #f5f5f5;
+        }
+        
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            cursor: pointer;
+        }
+        
+        #status {
+            margin: 20px 0;
+            padding: 10px;
+            background-color: #e0e0e0;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Highlighter Test Page</h1>
+    
+    <p>This is a test page for the Text Highlighter Chrome extension. Use this page to test highlighting functionality.</p>
+    
+    <h2>Static Content</h2>
+    <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit. Test word appears here. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Another test word for highlighting.</p>
+    
+    <p>The word test appears multiple times in this paragraph. This helps test the highlighting of multiple occurrences of the same test word.</p>
+    
+    <h2>Dynamic Content Test</h2>
+    <div class="dynamic-content" id="dynamicArea">
+        <p>Initial content with test word.</p>
+    </div>
+    
+    <button onclick="addContent()">Add Dynamic Content</button>
+    <button onclick="addManyElements()">Add Many Elements (Stress Test)</button>
+    <button onclick="clearDynamic()">Clear Dynamic Content</button>
+    
+    <div id="status">Ready</div>
+    
+    <h2>Nested Content</h2>
+    <div>
+        <p>Parent paragraph with test word.</p>
+        <div>
+            <p>Nested paragraph also containing test word.</p>
+            <div>
+                <p>Deeply nested test content.</p>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        let contentCounter = 0;
+        
+        function updateStatus(message) {
+            document.getElementById('status').textContent = message + ' at ' + new Date().toLocaleTimeString();
+        }
+        
+        function addContent() {
+            contentCounter++;
+            const dynamicArea = document.getElementById('dynamicArea');
+            const newParagraph = document.createElement('p');
+            newParagraph.textContent = `Dynamic content #${contentCounter} with test word added at ${new Date().toLocaleTimeString()}`;
+            dynamicArea.appendChild(newParagraph);
+            updateStatus('Added dynamic content');
+        }
+        
+        function addManyElements() {
+            const dynamicArea = document.getElementById('dynamicArea');
+            const fragment = document.createDocumentFragment();
+            
+            for (let i = 0; i < 50; i++) {
+                const p = document.createElement('p');
+                p.textContent = `Stress test paragraph ${i} containing the test word multiple times. Test test test.`;
+                fragment.appendChild(p);
+            }
+            
+            dynamicArea.appendChild(fragment);
+            updateStatus('Added 50 elements at once');
+        }
+        
+        function clearDynamic() {
+            const dynamicArea = document.getElementById('dynamicArea');
+            dynamicArea.innerHTML = '<p>Initial content with test word.</p>';
+            contentCounter = 0;
+            updateStatus('Cleared dynamic content');
+        }
+        
+        // Simulate continuous updates (like a real dynamic website)
+        setInterval(() => {
+            const timeSpan = document.createElement('span');
+            timeSpan.textContent = ' ';
+            document.getElementById('status').appendChild(timeSpan);
+            setTimeout(() => timeSpan.remove(), 5000);
+        }, 5000);
+    </script>
+</body>
+</html>
