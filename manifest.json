@@ -5,7 +5,9 @@
   "description": "Highlight specified text on web pages with custom styles",
   "permissions": [
     "storage",
-    "activeTab"
+    "activeTab",
+    "scripting",
+    "tabs"
   ],
   "action": {
     "default_popup": "popup.html",
