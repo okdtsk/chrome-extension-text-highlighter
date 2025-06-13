@@ -9,6 +9,7 @@ This repository is a Chrome extension to highlight a text in a web site with spe
 The extension popup window is a configuration UI.
 Via this configuration UI, you can manage multiple target texts.
 Each target text has different style configuration.
+The configuration is stored in local storage to make it persistent.
 
 ## Target text
 
