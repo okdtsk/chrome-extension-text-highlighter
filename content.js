@@ -3,9 +3,88 @@ let highlightedElements = [];
 let isApplyingHighlights = false;
 let pendingHighlight = null;
 let highlightDebounceTimer = null;
+let notificationsEnabled = true;
+let lastNotificationTime = 0;
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function showNotification(matchCount, ruleCount) {
+  // Only show notifications if enabled and not too frequent (once per 5 seconds per page)
+  const now = Date.now();
+  if (!notificationsEnabled || now - lastNotificationTime < 5000) {
+    return;
+  }
+  
+  lastNotificationTime = now;
+  
+  // Create notification element
+  const notification = document.createElement('div');
+  notification.style.cssText = `
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: #4CAF50;
+    color: white;
+    padding: 15px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 999999;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    line-height: 1.5;
+    max-width: 300px;
+    animation: slideIn 0.3s ease-out;
+  `;
+  
+  const style = document.createElement('style');
+  style.textContent = `
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+    @keyframes slideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+  
+  const matchText = matchCount === 1 ? '1 match' : `${matchCount} matches`;
+  const ruleText = ruleCount === 1 ? '1 rule' : `${ruleCount} rules`;
+  
+  notification.innerHTML = `
+    <div style="font-weight: 600; margin-bottom: 4px;">Text Highlighter</div>
+    <div>Found ${matchText} for ${ruleText} on this page</div>
+  `;
+  
+  document.body.appendChild(notification);
+  
+  // Remove notification after 6 seconds
+  setTimeout(() => {
+    notification.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    }, 300);
+  }, 6000);
 }
 
 function createHighlightStyles(rule) {
@@ -25,10 +104,6 @@ function createHighlightStyles(rule) {
   
   if (rule.fontWeight) {
     styles.push(`font-weight: ${rule.fontWeight}`);
-  }
-  
-  if (rule.margin > 0) {
-    styles.push(`margin: ${rule.margin}px`);
   }
   
   if (rule.padding > 0) {
@@ -112,7 +187,7 @@ function highlightText(node, pattern, styles, ruleId) {
   }
 }
 
-function applyHighlights() {
+function applyHighlights(showNotifications = false) {
   if (isApplyingHighlights) {
     pendingHighlight = true;
     return;
@@ -127,6 +202,9 @@ function applyHighlights() {
   
   removeHighlights();
   
+  let totalMatches = 0;
+  let rulesWithMatches = 0;
+  
   try {
     highlightRules.forEach(rule => {
       if (!rule.targetText) return;
@@ -138,11 +216,23 @@ function applyHighlights() {
       const styles = createHighlightStyles(rule);
       
       try {
+        const matchesBeforeRule = highlightedElements.length;
         highlightText(document.body, pattern, styles, rule.id);
+        const matchesForRule = highlightedElements.length - matchesBeforeRule;
+        
+        if (matchesForRule > 0) {
+          totalMatches += matchesForRule;
+          rulesWithMatches++;
+        }
       } catch (e) {
         console.error('Error applying highlight rule:', e);
       }
     });
+    
+    // Show notification if requested and matches were found
+    if (showNotifications && totalMatches > 0) {
+      showNotification(totalMatches, rulesWithMatches);
+    }
   } finally {
     isApplyingHighlights = false;
     
@@ -165,17 +255,27 @@ function debouncedApplyHighlights() {
 }
 
 function loadAndApplySettings() {
-  chrome.storage.sync.get({ highlightRules: [] }, function(data) {
+  chrome.storage.sync.get({ 
+    highlightRules: [], 
+    notificationsEnabled: true 
+  }, function(data) {
     highlightRules = data.highlightRules;
-    applyHighlights();
+    notificationsEnabled = data.notificationsEnabled;
+    // Show notifications on initial page load
+    applyHighlights(true);
   });
 }
 
-chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+chrome.runtime.onMessage.addListener(function(request, _sender, sendResponse) {
   if (request.action === 'updateHighlights') {
     highlightRules = request.rules;
+    if (request.hasOwnProperty('notificationsEnabled')) {
+      notificationsEnabled = request.notificationsEnabled;
+    }
     applyHighlights();
+    sendResponse({status: 'highlights updated'});
   }
+  return true; // Keep the message channel open for async response
 });
 
 const observer = new MutationObserver(function(mutations) {

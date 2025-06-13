@@ -1,5 +1,6 @@
 let highlightRules = [];
 let editingIndex = -1;
+let notificationsEnabled = true;
 
 document.addEventListener('DOMContentLoaded', function() {
   const elements = {
@@ -7,6 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     exportBtn: document.getElementById('exportBtn'),
     importBtn: document.getElementById('importBtn'),
     importFile: document.getElementById('importFile'),
+    enableNotifications: document.getElementById('enableNotifications'),
     highlightsList: document.getElementById('highlightsList'),
     noHighlights: document.getElementById('noHighlights'),
     editModal: document.getElementById('editModal'),
@@ -18,7 +20,6 @@ document.addEventListener('DOMContentLoaded', function() {
     textColor: document.getElementById('textColor'),
     fontSize: document.getElementById('fontSize'),
     fontWeight: document.getElementById('fontWeight'),
-    margin: document.getElementById('margin'),
     padding: document.getElementById('padding'),
     borderStyle: document.getElementById('borderStyle'),
     borderColor: document.getElementById('borderColor'),
@@ -75,7 +76,6 @@ document.addEventListener('DOMContentLoaded', function() {
     preview.style.color = rule.textColor;
     if (rule.fontSize) preview.style.fontSize = rule.fontSize;
     if (rule.fontWeight) preview.style.fontWeight = rule.fontWeight;
-    if (rule.margin > 0) preview.style.margin = `${rule.margin}px`;
     if (rule.padding > 0) preview.style.padding = `${rule.padding}px`;
     if (rule.borderStyle === 'underline') {
       preview.style.borderBottom = `2px solid ${rule.borderColor}`;
@@ -144,7 +144,6 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.textColor.value = '#000000';
     elements.fontSize.value = '';
     elements.fontWeight.value = '';
-    elements.margin.value = '0';
     elements.padding.value = '0';
     elements.borderStyle.value = 'none';
     elements.borderColor.value = '#000000';
@@ -159,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function() {
     elements.textColor.value = rule.textColor;
     elements.fontSize.value = rule.fontSize;
     elements.fontWeight.value = rule.fontWeight;
-    elements.margin.value = rule.margin;
     elements.padding.value = rule.padding;
     elements.borderStyle.value = rule.borderStyle;
     elements.borderColor.value = rule.borderColor;
@@ -184,7 +182,6 @@ document.addEventListener('DOMContentLoaded', function() {
       textColor: elements.textColor.value,
       fontSize: elements.fontSize.value,
       fontWeight: elements.fontWeight.value,
-      margin: parseInt(elements.margin.value) || 0,
       padding: parseInt(elements.padding.value) || 0,
       borderStyle: elements.borderStyle.value,
       borderColor: elements.borderColor.value
@@ -219,27 +216,52 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   function saveToStorage() {
-    chrome.storage.sync.set({ highlightRules: highlightRules }, function() {
+    chrome.storage.sync.set({ 
+      highlightRules: highlightRules,
+      notificationsEnabled: notificationsEnabled 
+    }, function() {
       // Send update to all tabs
       chrome.tabs.query({}, function(tabs) {
         tabs.forEach(tab => {
-          chrome.tabs.sendMessage(tab.id, {
-            action: 'updateHighlights',
-            rules: highlightRules
-          }, function() {
-            // Ignore errors for tabs that don't have content script
-            if (chrome.runtime.lastError) {
-              console.log('Tab not ready:', chrome.runtime.lastError.message);
-            }
-          });
+          // Skip chrome:// and other restricted URLs
+          if (tab.url && (tab.url.startsWith('http://') || tab.url.startsWith('https://'))) {
+            // First try to send message
+            chrome.tabs.sendMessage(tab.id, {
+              action: 'updateHighlights',
+              rules: highlightRules,
+              notificationsEnabled: notificationsEnabled
+            }, function(response) {
+              // If content script is not injected, inject it first
+              if (chrome.runtime.lastError) {
+                chrome.scripting.executeScript({
+                  target: { tabId: tab.id },
+                  files: ['content.js']
+                }, function() {
+                  if (!chrome.runtime.lastError) {
+                    // Now send the message again
+                    chrome.tabs.sendMessage(tab.id, {
+                      action: 'updateHighlights',
+                      rules: highlightRules,
+                      notificationsEnabled: notificationsEnabled
+                    });
+                  }
+                });
+              }
+            });
+          }
         });
       });
     });
   }
 
   function loadFromStorage() {
-    chrome.storage.sync.get({ highlightRules: [] }, function(data) {
+    chrome.storage.sync.get({ 
+      highlightRules: [], 
+      notificationsEnabled: true 
+    }, function(data) {
       highlightRules = data.highlightRules;
+      notificationsEnabled = data.notificationsEnabled;
+      elements.enableNotifications.checked = notificationsEnabled;
       renderHighlightsList();
     });
   }
@@ -369,6 +391,11 @@ document.addEventListener('DOMContentLoaded', function() {
     if (e.target === elements.editModal) {
       hideModal();
     }
+  });
+
+  elements.enableNotifications.addEventListener('change', function() {
+    notificationsEnabled = this.checked;
+    saveToStorage();
   });
 
   // Initialize
