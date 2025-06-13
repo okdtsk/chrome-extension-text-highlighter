@@ -52,6 +52,18 @@ h3 {
   flex: 1;
 }
 
+.notification-settings {
+  margin-top: 10px;
+  padding: 10px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.notification-settings .checkbox-label {
+  margin: 0;
+  font-size: 13px;
+}
+
 .highlights-list {
   flex: 1;
   overflow-y: auto;
