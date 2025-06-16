@@ -73,7 +73,7 @@ function showNotification(matchCount, ruleCount) {
   
   document.body.appendChild(notification);
   
-  // Remove notification after 6 seconds
+  // Remove notification after 3 seconds
   setTimeout(() => {
     notification.style.animation = 'slideOut 0.3s ease-out';
     setTimeout(() => {
@@ -84,7 +84,7 @@ function showNotification(matchCount, ruleCount) {
         style.parentNode.removeChild(style);
       }
     }, 300);
-  }, 6000);
+  }, 3000);
 }
 
 function createHighlightStyles(rule) {
