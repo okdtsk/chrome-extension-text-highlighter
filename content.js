@@ -36,6 +36,7 @@ function showNotification(matchCount, ruleCount) {
     line-height: 1.5;
     max-width: 300px;
     animation: slideIn 0.3s ease-out;
+    cursor: pointer;
   `;
   
   const style = document.createElement('style');
@@ -72,6 +73,19 @@ function showNotification(matchCount, ruleCount) {
   `;
   
   document.body.appendChild(notification);
+  
+  // Add click handler to close notification immediately
+  notification.addEventListener('click', () => {
+    notification.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+    }, 300);
+  });
   
   // Remove notification after 3 seconds
   setTimeout(() => {
