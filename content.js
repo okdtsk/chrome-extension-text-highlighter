@@ -115,6 +115,9 @@ function showNotification(rulesWithMatches) {
       outline: 3px solid #2196F3 !important;
       outline-offset: 2px;
     }
+    #close-notification:hover {
+      background: rgba(255, 255, 255, 0.2) !important;
+    }
   `;
   document.head.appendChild(style);
   
@@ -123,6 +126,7 @@ function showNotification(rulesWithMatches) {
   const ruleText = rulesWithMatches === 1 ? '1 rule' : `${rulesWithMatches} rules`;
   
   notification.innerHTML = `
+    <button id="close-notification" style="position: absolute; top: 10px; right: 10px; background: none; border: none; color: white; font-size: 20px; cursor: pointer; padding: 0; width: 25px; height: 25px; display: flex; align-items: center; justify-content: center; border-radius: 4px; transition: background 0.2s;" title="Close">×</button>
     <div style="font-weight: 600; margin-bottom: 4px;">Text Highlighter</div>
     <div style="margin-bottom: 10px;">Found ${matchText} for ${ruleText} on this page</div>
     <div style="display: flex; align-items: center; justify-content: center;">
@@ -220,27 +224,25 @@ function showNotification(rulesWithMatches) {
     updateSearchPosition();
   }
   
-  // Close notification handler
-  notification.addEventListener('click', (e) => {
-    // Only close if clicking outside the buttons
-    if (e.target === notification || 
-        (e.target.parentElement === notification && !e.target.classList.contains('search-button'))) {
-      notification.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => {
-        if (notification.parentNode) {
-          notification.parentNode.removeChild(notification);
-        }
-        if (style.parentNode) {
-          style.parentNode.removeChild(style);
-        }
-        // Clear current highlight indicator
-        document.querySelectorAll('.current-highlight').forEach(el => {
-          el.classList.remove('current-highlight');
-        });
-        searchNotification = null;
-        currentHighlightIndex = -1;
-      }, 300);
-    }
+  // Close notification handler - only for close button
+  const closeButton = notification.querySelector('#close-notification');
+  closeButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    notification.style.animation = 'slideOut 0.3s ease-out';
+    setTimeout(() => {
+      if (notification.parentNode) {
+        notification.parentNode.removeChild(notification);
+      }
+      if (style.parentNode) {
+        style.parentNode.removeChild(style);
+      }
+      // Clear current highlight indicator
+      document.querySelectorAll('.current-highlight').forEach(el => {
+        el.classList.remove('current-highlight');
+      });
+      searchNotification = null;
+      currentHighlightIndex = -1;
+    }, 300);
   });
 }
 
