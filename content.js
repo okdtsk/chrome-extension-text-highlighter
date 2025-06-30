@@ -130,9 +130,17 @@ function showNotification(rulesWithMatches) {
     <div style="font-weight: 600; margin-bottom: 4px;">Text Highlighter</div>
     <div style="margin-bottom: 10px;">Found ${matchText} for ${ruleText} on this page</div>
     <div style="display: flex; align-items: center; justify-content: center;">
-      <button class="search-button" id="prev-highlight" title="Previous highlight">↑</button>
+      <button class="search-button" id="prev-highlight" title="Previous highlight">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="18 15 12 9 6 15"></polyline>
+        </svg>
+      </button>
       <span id="search-position" style="margin: 0 10px; min-width: 60px; text-align: center;">-</span>
-      <button class="search-button" id="next-highlight" title="Next highlight">↓</button>
+      <button class="search-button" id="next-highlight" title="Next highlight">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="6 9 12 15 18 9"></polyline>
+        </svg>
+      </button>
     </div>
   `;
   
