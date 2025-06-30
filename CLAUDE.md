@@ -32,3 +32,7 @@ This extension supports the following highlight style.
 ## Export/Import setting
 
 If you want to use the same configuration in another PC, you can easily export/import the configuration.
+
+# Development
+
+- Commit message should be Conventional Commits style.

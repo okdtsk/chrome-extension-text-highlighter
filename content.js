@@ -5,12 +5,33 @@ let pendingHighlight = null;
 let highlightDebounceTimer = null;
 let notificationsEnabled = true;
 let lastNotificationTime = 0;
+let currentHighlightIndex = -1;
+let searchNotification = null;
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
-function showNotification(matchCount, ruleCount) {
+// Helper function to sort elements by their position in the DOM
+function sortElementsByDOMPosition(elements) {
+  return elements.sort((a, b) => {
+    if (a === b) return 0;
+    const position = a.compareDocumentPosition(b);
+    if (position & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
+    if (position & Node.DOCUMENT_POSITION_PRECEDING) return 1;
+    return 0;
+  });
+}
+
+// Helper function to get valid highlighted elements
+function getValidHighlightedElements() {
+  // Filter out any elements that are no longer in the DOM
+  const validElements = highlightedElements.filter(el => document.body.contains(el));
+  // Sort them by DOM position
+  return sortElementsByDOMPosition(validElements);
+}
+
+function showNotification(rulesWithMatches) {
   // Only show notifications if enabled and not too frequent (once per 5 seconds per page)
   const now = Date.now();
   if (!notificationsEnabled || now - lastNotificationTime < 5000) {
@@ -18,6 +39,14 @@ function showNotification(matchCount, ruleCount) {
   }
   
   lastNotificationTime = now;
+  
+  // Remove existing search notification if any
+  if (searchNotification && searchNotification.parentNode) {
+    searchNotification.parentNode.removeChild(searchNotification);
+  }
+  
+  // Get sorted valid elements
+  const sortedHighlights = getValidHighlightedElements();
   
   // Create notification element
   const notification = document.createElement('div');
@@ -34,9 +63,8 @@ function showNotification(matchCount, ruleCount) {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     font-size: 14px;
     line-height: 1.5;
-    max-width: 300px;
+    max-width: 350px;
     animation: slideIn 0.3s ease-out;
-    cursor: pointer;
   `;
   
   const style = document.createElement('style');
@@ -61,44 +89,159 @@ function showNotification(matchCount, ruleCount) {
         opacity: 0;
       }
     }
+    .search-button {
+      background: rgba(255, 255, 255, 0.2);
+      border: none;
+      color: white;
+      width: 30px;
+      height: 30px;
+      border-radius: 4px;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 4px;
+      font-size: 18px;
+      transition: background 0.2s;
+    }
+    .search-button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .search-button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    .current-highlight {
+      outline: 3px solid #2196F3 !important;
+      outline-offset: 2px;
+    }
   `;
   document.head.appendChild(style);
   
-  const matchText = matchCount === 1 ? '1 match' : `${matchCount} matches`;
-  const ruleText = ruleCount === 1 ? '1 rule' : `${ruleCount} rules`;
+  const actualMatchCount = sortedHighlights.length;
+  const matchText = actualMatchCount === 1 ? '1 match' : `${actualMatchCount} matches`;
+  const ruleText = rulesWithMatches === 1 ? '1 rule' : `${rulesWithMatches} rules`;
   
   notification.innerHTML = `
     <div style="font-weight: 600; margin-bottom: 4px;">Text Highlighter</div>
-    <div>Found ${matchText} for ${ruleText} on this page</div>
+    <div style="margin-bottom: 10px;">Found ${matchText} for ${ruleText} on this page</div>
+    <div style="display: flex; align-items: center; justify-content: center;">
+      <button class="search-button" id="prev-highlight" title="Previous highlight">↑</button>
+      <span id="search-position" style="margin: 0 10px; min-width: 60px; text-align: center;">-</span>
+      <button class="search-button" id="next-highlight" title="Next highlight">↓</button>
+    </div>
   `;
   
   document.body.appendChild(notification);
+  searchNotification = notification;
   
-  // Add click handler to close notification immediately
-  notification.addEventListener('click', () => {
-    notification.style.animation = 'slideOut 0.3s ease-out';
+  // Add navigation event handlers
+  const prevButton = notification.querySelector('#prev-highlight');
+  const nextButton = notification.querySelector('#next-highlight');
+  const positionSpan = notification.querySelector('#search-position');
+  
+  let localHighlightIndex = -1;
+  
+  function updateSearchPosition() {
+    const validElements = getValidHighlightedElements();
+    if (validElements.length === 0) {
+      positionSpan.textContent = '0 / 0';
+      prevButton.disabled = true;
+      nextButton.disabled = true;
+    } else {
+      positionSpan.textContent = `${localHighlightIndex + 1} / ${validElements.length}`;
+      prevButton.disabled = validElements.length <= 1;
+      nextButton.disabled = validElements.length <= 1;
+    }
+  }
+  
+  function navigateToHighlight(index) {
+    const validElements = getValidHighlightedElements();
+    if (index < 0 || index >= validElements.length) return;
+    
+    // Remove all current highlight indicators
+    document.querySelectorAll('.current-highlight').forEach(el => {
+      el.classList.remove('current-highlight');
+    });
+    
+    localHighlightIndex = index;
+    const element = validElements[index];
+    
+    // Check if element is still in DOM
+    if (!document.body.contains(element)) {
+      console.warn('Highlighted element no longer in DOM');
+      return;
+    }
+    
+    // Add current highlight indicator
+    element.classList.add('current-highlight');
+    
+    // Scroll to element with better positioning
+    element.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+      inline: 'nearest'
+    });
+    
+    // Ensure element is not hidden behind fixed headers
     setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-      if (style.parentNode) {
-        style.parentNode.removeChild(style);
+      const rect = element.getBoundingClientRect();
+      if (rect.top < 100) {
+        window.scrollBy({ top: -100, behavior: 'smooth' });
       }
     }, 300);
+    
+    updateSearchPosition();
+  }
+  
+  prevButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const validElements = getValidHighlightedElements();
+    if (validElements.length > 0) {
+      const newIndex = localHighlightIndex > 0 ? localHighlightIndex - 1 : validElements.length - 1;
+      navigateToHighlight(newIndex);
+    }
   });
   
-  // Remove notification after 3 seconds
-  setTimeout(() => {
-    notification.style.animation = 'slideOut 0.3s ease-out';
-    setTimeout(() => {
-      if (notification.parentNode) {
-        notification.parentNode.removeChild(notification);
-      }
-      if (style.parentNode) {
-        style.parentNode.removeChild(style);
-      }
-    }, 300);
-  }, 3000);
+  nextButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const validElements = getValidHighlightedElements();
+    if (validElements.length > 0) {
+      const newIndex = localHighlightIndex < validElements.length - 1 ? localHighlightIndex + 1 : 0;
+      navigateToHighlight(newIndex);
+    }
+  });
+  
+  // Initialize search position
+  if (sortedHighlights.length > 0) {
+    localHighlightIndex = 0;
+    navigateToHighlight(0);
+  } else {
+    updateSearchPosition();
+  }
+  
+  // Close notification handler
+  notification.addEventListener('click', (e) => {
+    // Only close if clicking outside the buttons
+    if (e.target === notification || 
+        (e.target.parentElement === notification && !e.target.classList.contains('search-button'))) {
+      notification.style.animation = 'slideOut 0.3s ease-out';
+      setTimeout(() => {
+        if (notification.parentNode) {
+          notification.parentNode.removeChild(notification);
+        }
+        if (style.parentNode) {
+          style.parentNode.removeChild(style);
+        }
+        // Clear current highlight indicator
+        document.querySelectorAll('.current-highlight').forEach(el => {
+          el.classList.remove('current-highlight');
+        });
+        searchNotification = null;
+        currentHighlightIndex = -1;
+      }, 300);
+    }
+  });
 }
 
 function createHighlightStyles(rule) {
@@ -151,6 +294,7 @@ function removeHighlights() {
     }
   });
   highlightedElements = [];
+  currentHighlightIndex = -1;
 }
 
 function highlightText(node, pattern, styles, ruleId) {
@@ -216,7 +360,6 @@ function applyHighlights(showNotifications = false) {
   
   removeHighlights();
   
-  let totalMatches = 0;
   let rulesWithMatches = 0;
   
   try {
@@ -235,7 +378,6 @@ function applyHighlights(showNotifications = false) {
         const matchesForRule = highlightedElements.length - matchesBeforeRule;
         
         if (matchesForRule > 0) {
-          totalMatches += matchesForRule;
           rulesWithMatches++;
         }
       } catch (e) {
@@ -244,8 +386,8 @@ function applyHighlights(showNotifications = false) {
     });
     
     // Show notification if requested and matches were found
-    if (showNotifications && totalMatches > 0) {
-      showNotification(totalMatches, rulesWithMatches);
+    if (showNotifications && highlightedElements.length > 0) {
+      showNotification(rulesWithMatches);
     }
   } finally {
     isApplyingHighlights = false;
