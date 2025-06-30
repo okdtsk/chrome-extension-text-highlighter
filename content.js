@@ -48,6 +48,10 @@ function showNotification(rulesWithMatches) {
   // Get sorted valid elements
   const sortedHighlights = getValidHighlightedElements();
   
+  // Auto-close timer variables
+  let autoCloseTimer = null;
+  const AUTO_CLOSE_DELAY = 5000; // 5 seconds
+  
   // Create notification element
   const notification = document.createElement('div');
   notification.style.cssText = `
@@ -208,6 +212,7 @@ function showNotification(rulesWithMatches) {
   
   prevButton.addEventListener('click', (e) => {
     e.stopPropagation();
+    stopAutoCloseTimer(); // Cancel auto-close when navigating
     const validElements = getValidHighlightedElements();
     if (validElements.length > 0) {
       const newIndex = localHighlightIndex > 0 ? localHighlightIndex - 1 : validElements.length - 1;
@@ -217,6 +222,7 @@ function showNotification(rulesWithMatches) {
   
   nextButton.addEventListener('click', (e) => {
     e.stopPropagation();
+    stopAutoCloseTimer(); // Cancel auto-close when navigating
     const validElements = getValidHighlightedElements();
     if (validElements.length > 0) {
       const newIndex = localHighlightIndex < validElements.length - 1 ? localHighlightIndex + 1 : 0;
@@ -232,10 +238,12 @@ function showNotification(rulesWithMatches) {
     updateSearchPosition();
   }
   
-  // Close notification handler - only for close button
-  const closeButton = notification.querySelector('#close-notification');
-  closeButton.addEventListener('click', (e) => {
-    e.stopPropagation();
+  // Auto-close function
+  function closeNotification() {
+    if (autoCloseTimer) {
+      clearTimeout(autoCloseTimer);
+      autoCloseTimer = null;
+    }
     notification.style.animation = 'slideOut 0.3s ease-out';
     setTimeout(() => {
       if (notification.parentNode) {
@@ -251,7 +259,42 @@ function showNotification(rulesWithMatches) {
       searchNotification = null;
       currentHighlightIndex = -1;
     }, 300);
+  }
+  
+  // Start auto-close timer
+  function startAutoCloseTimer() {
+    if (autoCloseTimer) {
+      clearTimeout(autoCloseTimer);
+    }
+    autoCloseTimer = setTimeout(closeNotification, AUTO_CLOSE_DELAY);
+  }
+  
+  // Stop auto-close timer
+  function stopAutoCloseTimer() {
+    if (autoCloseTimer) {
+      clearTimeout(autoCloseTimer);
+      autoCloseTimer = null;
+    }
+  }
+  
+  // Close notification handler - only for close button
+  const closeButton = notification.querySelector('#close-notification');
+  closeButton.addEventListener('click', (e) => {
+    e.stopPropagation();
+    closeNotification();
   });
+  
+  // Hover event handlers for auto-close timer
+  notification.addEventListener('mouseenter', () => {
+    stopAutoCloseTimer();
+  });
+  
+  notification.addEventListener('mouseleave', () => {
+    startAutoCloseTimer();
+  });
+  
+  // Start the auto-close timer initially
+  startAutoCloseTimer();
 }
 
 function createHighlightStyles(rule) {
