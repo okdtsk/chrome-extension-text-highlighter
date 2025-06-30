@@ -166,8 +166,9 @@ function showNotification(rulesWithMatches) {
       nextButton.disabled = true;
     } else {
       positionSpan.textContent = `${localHighlightIndex + 1} / ${validElements.length}`;
-      prevButton.disabled = validElements.length <= 1;
-      nextButton.disabled = validElements.length <= 1;
+      // Never disable buttons - allow navigation even with single element
+      prevButton.disabled = false;
+      nextButton.disabled = false;
     }
   }
   
@@ -215,8 +216,13 @@ function showNotification(rulesWithMatches) {
     stopAutoCloseTimer(); // Cancel auto-close when navigating
     const validElements = getValidHighlightedElements();
     if (validElements.length > 0) {
-      const newIndex = localHighlightIndex > 0 ? localHighlightIndex - 1 : validElements.length - 1;
-      navigateToHighlight(newIndex);
+      if (validElements.length === 1) {
+        // For single element, always navigate to it (index 0)
+        navigateToHighlight(0);
+      } else {
+        const newIndex = localHighlightIndex > 0 ? localHighlightIndex - 1 : validElements.length - 1;
+        navigateToHighlight(newIndex);
+      }
     }
   });
   
@@ -225,8 +231,13 @@ function showNotification(rulesWithMatches) {
     stopAutoCloseTimer(); // Cancel auto-close when navigating
     const validElements = getValidHighlightedElements();
     if (validElements.length > 0) {
-      const newIndex = localHighlightIndex < validElements.length - 1 ? localHighlightIndex + 1 : 0;
-      navigateToHighlight(newIndex);
+      if (validElements.length === 1) {
+        // For single element, always navigate to it (index 0)
+        navigateToHighlight(0);
+      } else {
+        const newIndex = localHighlightIndex < validElements.length - 1 ? localHighlightIndex + 1 : 0;
+        navigateToHighlight(newIndex);
+      }
     }
   });
   
