@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', function() {
     closeModalBtn: document.getElementById('closeModalBtn'),
     targetText: document.getElementById('targetText'),
     useRegex: document.getElementById('useRegex'),
+    domainPattern: document.getElementById('domainPattern'),
     bgColor: document.getElementById('bgColor'),
     textColor: document.getElementById('textColor'),
     fontSize: document.getElementById('fontSize'),
@@ -61,6 +62,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const textDiv = document.createElement('div');
     textDiv.className = 'highlight-text';
     textDiv.textContent = rule.targetText;
+    if (rule.domainPattern) {
+      textDiv.textContent += ` (${rule.domainPattern})`;
+    }
     
     const typeSpan = document.createElement('span');
     typeSpan.className = 'highlight-type';
@@ -140,6 +144,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function resetForm() {
     elements.targetText.value = '';
     elements.useRegex.checked = false;
+    elements.domainPattern.value = '';
     elements.bgColor.value = '#ffff00';
     elements.textColor.value = '#000000';
     elements.fontSize.value = '';
@@ -154,6 +159,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function loadRuleIntoForm(rule) {
     elements.targetText.value = rule.targetText;
     elements.useRegex.checked = rule.useRegex;
+    elements.domainPattern.value = rule.domainPattern || '';
     elements.bgColor.value = rule.bgColor;
     elements.textColor.value = rule.textColor;
     elements.fontSize.value = rule.fontSize;
@@ -174,10 +180,23 @@ document.addEventListener('DOMContentLoaded', function() {
       return;
     }
 
+    const domainPattern = elements.domainPattern.value.trim();
+    
+    // Validate domain pattern if provided
+    if (domainPattern) {
+      try {
+        new RegExp(domainPattern);
+      } catch (e) {
+        showStatus('Invalid domain pattern regular expression', 'error');
+        return;
+      }
+    }
+    
     const rule = {
       id: editingIndex >= 0 ? highlightRules[editingIndex].id : generateId(),
       targetText: targetText,
       useRegex: elements.useRegex.checked,
+      domainPattern: domainPattern,
       bgColor: elements.bgColor.value,
       textColor: elements.textColor.value,
       fontSize: elements.fontSize.value,
@@ -259,7 +278,20 @@ document.addEventListener('DOMContentLoaded', function() {
       highlightRules: [], 
       notificationsEnabled: true 
     }, function(data) {
-      highlightRules = data.highlightRules;
+      // Migrate existing rules to ensure they have domainPattern field
+      highlightRules = data.highlightRules.map(rule => {
+        if (!rule.hasOwnProperty('domainPattern')) {
+          return { ...rule, domainPattern: '' };
+        }
+        return rule;
+      });
+      
+      // Save migrated rules back if any migration occurred
+      const needsMigration = data.highlightRules.some(rule => !rule.hasOwnProperty('domainPattern'));
+      if (needsMigration) {
+        chrome.storage.sync.set({ highlightRules: highlightRules });
+      }
+      
       notificationsEnabled = data.notificationsEnabled;
       elements.enableNotifications.checked = notificationsEnabled;
       renderHighlightsList();
@@ -317,10 +349,15 @@ document.addEventListener('DOMContentLoaded', function() {
           throw new Error('Invalid file format: missing or invalid highlightRules array');
         }
 
-        // Validate each rule has required fields
-        for (let rule of importData.highlightRules) {
+        // Validate each rule has required fields and add domainPattern if missing
+        for (let i = 0; i < importData.highlightRules.length; i++) {
+          const rule = importData.highlightRules[i];
           if (!rule.hasOwnProperty('targetText') || !rule.hasOwnProperty('id')) {
             throw new Error('Invalid file format: rules missing required fields');
+          }
+          // Add domainPattern if not present (for backwards compatibility)
+          if (!rule.hasOwnProperty('domainPattern')) {
+            importData.highlightRules[i] = { ...rule, domainPattern: '' };
           }
         }
 

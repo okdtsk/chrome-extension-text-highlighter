@@ -375,3 +375,10 @@ input[type="text"]:focus {
 .highlights-list::-webkit-scrollbar-thumb:hover {
   background: #555;
 }
+
+.help-text {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+  font-style: italic;
+}

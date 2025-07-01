@@ -425,10 +425,24 @@ function applyHighlights(showNotifications = false) {
   removeHighlights();
   
   let rulesWithMatches = 0;
+  const currentUrl = window.location.href;
   
   try {
     highlightRules.forEach(rule => {
       if (!rule.targetText) return;
+      
+      // Check domain restriction
+      if (rule.domainPattern) {
+        try {
+          const domainRegex = new RegExp(rule.domainPattern);
+          if (!domainRegex.test(currentUrl)) {
+            return; // Skip this rule if domain doesn't match
+          }
+        } catch (e) {
+          console.error('Invalid domain pattern:', rule.domainPattern, e);
+          return;
+        }
+      }
       
       const pattern = rule.useRegex 
         ? rule.targetText 

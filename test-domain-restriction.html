@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Domain Restriction Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        code {
+            background: #f4f4f4;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Domain Restriction Feature Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Scenarios</h2>
+        <p>This page contains the text "days ago" multiple times to test domain restriction.</p>
+        
+        <h3>Example 1</h3>
+        <p>This post was created 5 days ago.</p>
+        
+        <h3>Example 2</h3>
+        <p>The event happened 10 days ago and was very successful.</p>
+        
+        <h3>Example 3</h3>
+        <p>Just days ago, we launched this new feature.</p>
+    </div>
+    
+    <div class="test-section">
+        <h2>How to Test</h2>
+        <ol>
+            <li>Open the extension popup</li>
+            <li>Add a new highlight rule for "days ago"</li>
+            <li>In Domain Restriction field, enter a pattern like:
+                <ul>
+                    <li><code>^file://.*test-domain.*\.html$</code> - Only this test file</li>
+                    <li><code>^https?://.*\.okdtsk\.dev</code> - Only okdtsk.dev domains</li>
+                    <li><code>^https://github\.com/.*</code> - Only GitHub</li>
+                </ul>
+            </li>
+            <li>Save the rule and check if highlighting works based on the domain pattern</li>
+        </ol>
+    </div>
+    
+    <div class="test-section">
+        <h2>Expected Behavior</h2>
+        <p>The text "days ago" should only be highlighted when the current page URL matches the domain pattern regular expression.</p>
+    </div>
+</body>
+</html>
