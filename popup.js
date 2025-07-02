@@ -1,6 +1,7 @@
 let highlightRules = [];
 let editingIndex = -1;
 let notificationsEnabled = true;
+let globalExcludedDomains = [];
 
 document.addEventListener('DOMContentLoaded', function() {
   const elements = {
@@ -27,7 +28,10 @@ document.addEventListener('DOMContentLoaded', function() {
     borderColorGroup: document.getElementById('borderColorGroup'),
     saveRuleBtn: document.getElementById('saveRuleBtn'),
     cancelBtn: document.getElementById('cancelBtn'),
-    status: document.getElementById('status')
+    status: document.getElementById('status'),
+    excludeDomainInput: document.getElementById('excludeDomainInput'),
+    addExcludeDomainBtn: document.getElementById('addExcludeDomainBtn'),
+    excludeDomainsList: document.getElementById('excludeDomainsList')
   };
 
   function generateId() {
@@ -237,7 +241,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function saveToStorage() {
     chrome.storage.sync.set({ 
       highlightRules: highlightRules,
-      notificationsEnabled: notificationsEnabled 
+      notificationsEnabled: notificationsEnabled,
+      globalExcludedDomains: globalExcludedDomains
     }, function() {
       // Send update to all tabs
       chrome.tabs.query({}, function(tabs) {
@@ -248,7 +253,8 @@ document.addEventListener('DOMContentLoaded', function() {
             chrome.tabs.sendMessage(tab.id, {
               action: 'updateHighlights',
               rules: highlightRules,
-              notificationsEnabled: notificationsEnabled
+              notificationsEnabled: notificationsEnabled,
+              globalExcludedDomains: globalExcludedDomains
             }, function(response) {
               // If content script is not injected, inject it first
               if (chrome.runtime.lastError) {
@@ -261,7 +267,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     chrome.tabs.sendMessage(tab.id, {
                       action: 'updateHighlights',
                       rules: highlightRules,
-                      notificationsEnabled: notificationsEnabled
+                      notificationsEnabled: notificationsEnabled,
+                      globalExcludedDomains: globalExcludedDomains
                     });
                   }
                 });
@@ -276,7 +283,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function loadFromStorage() {
     chrome.storage.sync.get({ 
       highlightRules: [], 
-      notificationsEnabled: true 
+      notificationsEnabled: true,
+      globalExcludedDomains: []
     }, function(data) {
       // Migrate existing rules to ensure they have domainPattern field
       highlightRules = data.highlightRules.map(rule => {
@@ -294,7 +302,9 @@ document.addEventListener('DOMContentLoaded', function() {
       
       notificationsEnabled = data.notificationsEnabled;
       elements.enableNotifications.checked = notificationsEnabled;
+      globalExcludedDomains = data.globalExcludedDomains || [];
       renderHighlightsList();
+      renderExcludedDomainsList();
     });
   }
 
@@ -307,7 +317,8 @@ document.addEventListener('DOMContentLoaded', function() {
     const exportData = {
       version: '1.0',
       exportDate: new Date().toISOString(),
-      highlightRules: highlightRules
+      highlightRules: highlightRules,
+      globalExcludedDomains: globalExcludedDomains
     };
 
     const dataStr = JSON.stringify(exportData, null, 2);
@@ -373,9 +384,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Import the rules
         highlightRules = importData.highlightRules;
+        globalExcludedDomains = importData.globalExcludedDomains || [];
         saveToStorage();
         renderHighlightsList();
-        showStatus(`Successfully imported ${highlightRules.length} rule(s)!`, 'success');
+        renderExcludedDomainsList();
+        showStatus(`Successfully imported ${highlightRules.length} rule(s) and ${globalExcludedDomains.length} excluded domain(s)!`, 'success');
 
       } catch (error) {
         console.error('Import error:', error);
@@ -388,6 +401,76 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     reader.readAsText(file);
+  }
+
+  // Global Exclude Domain Functions
+  function renderExcludedDomainsList() {
+    elements.excludeDomainsList.innerHTML = '';
+    
+    if (globalExcludedDomains.length === 0) {
+      const emptyMessage = document.createElement('li');
+      emptyMessage.style.textAlign = 'center';
+      emptyMessage.style.padding = '10px';
+      emptyMessage.style.color = '#666';
+      emptyMessage.style.fontStyle = 'italic';
+      emptyMessage.textContent = 'No excluded domains yet';
+      elements.excludeDomainsList.appendChild(emptyMessage);
+      return;
+    }
+    
+    globalExcludedDomains.forEach((pattern, index) => {
+      const li = document.createElement('li');
+      li.className = 'exclude-domain-item';
+      
+      const patternSpan = document.createElement('span');
+      patternSpan.className = 'exclude-domain-pattern';
+      patternSpan.textContent = pattern;
+      
+      const removeBtn = document.createElement('button');
+      removeBtn.className = 'exclude-domain-remove';
+      removeBtn.textContent = 'Remove';
+      removeBtn.onclick = () => removeExcludedDomain(index);
+      
+      li.appendChild(patternSpan);
+      li.appendChild(removeBtn);
+      elements.excludeDomainsList.appendChild(li);
+    });
+  }
+  
+  function addExcludedDomain() {
+    const pattern = elements.excludeDomainInput.value.trim();
+    
+    if (!pattern) {
+      showStatus('Please enter a domain pattern', 'error');
+      return;
+    }
+    
+    // Validate the pattern as regex
+    try {
+      new RegExp(pattern);
+    } catch (e) {
+      showStatus('Invalid regular expression pattern', 'error');
+      return;
+    }
+    
+    // Check if pattern already exists
+    if (globalExcludedDomains.includes(pattern)) {
+      showStatus('This pattern already exists', 'error');
+      return;
+    }
+    
+    globalExcludedDomains.push(pattern);
+    elements.excludeDomainInput.value = '';
+    saveToStorage();
+    renderExcludedDomainsList();
+    showStatus('Excluded domain added successfully!', 'success');
+  }
+  
+  function removeExcludedDomain(index) {
+    globalExcludedDomains.splice(index, 1);
+    saveToStorage();
+    renderExcludedDomainsList();
+    showStatus('Excluded domain removed successfully!', 'success');
   }
 
   // Event listeners
@@ -433,6 +516,15 @@ document.addEventListener('DOMContentLoaded', function() {
   elements.enableNotifications.addEventListener('change', function() {
     notificationsEnabled = this.checked;
     saveToStorage();
+  });
+
+  // Global exclude domain event listeners
+  elements.addExcludeDomainBtn.addEventListener('click', addExcludedDomain);
+  
+  elements.excludeDomainInput.addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      addExcludedDomain();
+    }
   });
 
   // Initialize

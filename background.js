@@ -2,7 +2,8 @@ chrome.runtime.onInstalled.addListener(function(details) {
   // Only initialize on fresh install, not on browser/extension updates
   if (details.reason === 'install') {
     chrome.storage.sync.set({
-      highlightRules: []
+      highlightRules: [],
+      globalExcludedDomains: []
     });
   }
 });
@@ -13,13 +14,15 @@ chrome.tabs.onUpdated.addListener(function(tabId, changeInfo) {
     setTimeout(() => {
       chrome.storage.sync.get({ 
         highlightRules: [], 
-        notificationsEnabled: true 
+        notificationsEnabled: true,
+        globalExcludedDomains: []
       }, function(data) {
         if (data.highlightRules && data.highlightRules.length > 0) {
           chrome.tabs.sendMessage(tabId, {
             action: 'updateHighlights',
             rules: data.highlightRules,
-            notificationsEnabled: data.notificationsEnabled
+            notificationsEnabled: data.notificationsEnabled,
+            globalExcludedDomains: data.globalExcludedDomains
           }, function() {
             // Handle any errors silently
             if (chrome.runtime.lastError) {

@@ -7,6 +7,7 @@ let notificationsEnabled = true;
 let lastNotificationTime = 0;
 let currentHighlightIndex = -1;
 let searchNotification = null;
+let globalExcludedDomains = [];
 
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -415,6 +416,22 @@ function applyHighlights(showNotifications = false) {
     return;
   }
   
+  // Check if current URL matches any global excluded domains
+  const currentUrl = window.location.href;
+  if (globalExcludedDomains && globalExcludedDomains.length > 0) {
+    for (const excludePattern of globalExcludedDomains) {
+      try {
+        const excludeRegex = new RegExp(excludePattern);
+        if (excludeRegex.test(currentUrl)) {
+          removeHighlights();
+          return; // Skip all highlights on this domain
+        }
+      } catch (e) {
+        console.error('Invalid global exclude pattern:', excludePattern, e);
+      }
+    }
+  }
+  
   if (!highlightRules || highlightRules.length === 0) {
     removeHighlights();
     return;
@@ -425,7 +442,6 @@ function applyHighlights(showNotifications = false) {
   removeHighlights();
   
   let rulesWithMatches = 0;
-  const currentUrl = window.location.href;
   
   try {
     highlightRules.forEach(rule => {
@@ -505,6 +521,9 @@ chrome.runtime.onMessage.addListener(function(request, _sender, sendResponse) {
     highlightRules = request.rules;
     if (request.hasOwnProperty('notificationsEnabled')) {
       notificationsEnabled = request.notificationsEnabled;
+    }
+    if (request.hasOwnProperty('globalExcludedDomains')) {
+      globalExcludedDomains = request.globalExcludedDomains;
     }
     applyHighlights();
     sendResponse({status: 'highlights updated'});

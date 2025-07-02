@@ -34,6 +34,20 @@
       <p>Click "Add New Text" to create your first rule.</p>
     </div>
 
+    <div class="global-exclude-section">
+      <h2>Global Exclude Sites</h2>
+      <div class="exclude-domains-container">
+        <div class="exclude-input-group">
+          <input type="text" id="excludeDomainInput" placeholder="e.g. example.com or .*\.internal\.com">
+          <button id="addExcludeDomainBtn" class="btn btn-secondary">Add</button>
+        </div>
+        <div class="help-text">Sites matching these patterns will never show highlights. Supports regular expressions.</div>
+        <ul id="excludeDomainsList" class="exclude-domains-list">
+          <!-- Excluded domains will be dynamically added here -->
+        </ul>
+      </div>
+    </div>
+
     <div id="editModal" class="modal" style="display: none;">
       <div class="modal-content">
         <div class="modal-header">

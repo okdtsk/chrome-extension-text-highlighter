@@ -382,3 +382,81 @@ input[type="text"]:focus {
   margin-top: 5px;
   font-style: italic;
 }
+
+/* Global Exclude Section */
+.global-exclude-section {
+  margin-top: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border: 1px solid #e9ecef;
+}
+
+.global-exclude-section h2 {
+  margin-bottom: 10px;
+  font-size: 16px;
+}
+
+.exclude-domains-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.exclude-input-group {
+  display: flex;
+  gap: 8px;
+}
+
+.exclude-input-group input {
+  flex: 1;
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.exclude-input-group button {
+  padding: 8px 16px;
+}
+
+.exclude-domains-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+.exclude-domain-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  margin-bottom: 5px;
+}
+
+.exclude-domain-pattern {
+  flex: 1;
+  font-family: monospace;
+  font-size: 13px;
+  word-break: break-all;
+}
+
+.exclude-domain-remove {
+  background: none;
+  border: none;
+  color: #dc3545;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 3px;
+  font-size: 12px;
+  transition: background-color 0.2s;
+}
+
+.exclude-domain-remove:hover {
+  background: #f8d7da;
+}
